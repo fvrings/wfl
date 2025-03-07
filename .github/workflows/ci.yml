@@ -1,0 +1,56 @@
+name: Tauri CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build Tauri App
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies (Ubuntu)
+        run: |
+          sudo apt update
+          sudo apt install -y libwebkit2gtk-4.0-dev \
+                              build-essential \
+                              curl \
+                              wget \
+                              libssl-dev \
+                              libgtk-3-dev \
+                              libayatana-appindicator3-dev \
+                              librsvg2-dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: "pnpm"
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Tauri App
+        run: pnpm tauri build
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-app-${{ runner.os }}
+          path: src-tauri/target/release/bundle/
